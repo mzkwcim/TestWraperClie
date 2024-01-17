@@ -1,8 +1,44 @@
-﻿using CliWrap;
-using CliWrap.Buffered;
+﻿using System;
+using System.Diagnostics;
 
-var powerShellResults = await Cli.Wrap("Powershell")
-    .WithArguments("foreach($dir in (ls C:\\Users\\Laptop\\Desktop\\UdaloSie).FullName ) \r\n{ \r\n    $dir\r\n    (get-acl $dir).Access | Select-Object -expandproperty Identityreference | Format-Table -HideTableHeaders  \r\n}")
-    .ExecuteBufferedAsync();
+class Program
+{
+    static void Main()
+    {
+        Console.WriteLine("Podaj ścieżkę do folderu:");
 
-Console.WriteLine(powerShellResults.StandardOutput);
+        // Odczytaj dane od użytkownika
+        string userInput = Console.ReadLine();
+
+        // Wywołaj PowerShell
+        string output = ExecutePowerShellCommand($"$data = '{userInput}'; $dir = (ls $data).FullName");
+        foreach( string line in output.Split())
+        {
+            ExecutePowerShellCommand($"get-acl {line} | Select-object -ExpandProperty access | Select-Object -ExpandProperty IdentityReference | Format-Table -HideTableHeaders");
+        }
+
+        Console.WriteLine("Naciśnij dowolny klawisz, aby zakończyć...");
+        Console.ReadKey();
+    }
+
+    static string ExecutePowerShellCommand(string command)
+    {
+        using (Process process = new Process())
+        {
+            process.StartInfo.FileName = "powershell";
+            process.StartInfo.Arguments = $"-Command {command}";
+            process.StartInfo.RedirectStandardOutput = true;
+            process.StartInfo.UseShellExecute = false;
+            process.StartInfo.CreateNoWindow = true;
+
+            process.Start();
+
+            // Pobierz wynik wykonania polecenia
+            string output = process.StandardOutput.ReadToEnd();
+            Console.WriteLine(output);
+
+            process.WaitForExit();
+            return output;
+        }
+    }
+}
